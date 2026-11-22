@@ -1,4 +1,4 @@
-const CACHE='emlak-portfoy-v3';
+const CACHE='armax-gayrimenkul-v4';
 const CORE=['./','./index.html','./config.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>clients.claim())));
@@ -10,7 +10,7 @@ self.addEventListener('fetch',e=>{
   }).catch(()=>e.request.mode==='navigate'?caches.match('./index.html'):undefined)));
 });
 self.addEventListener('push',e=>{let d={};try{d=e.data.json()}catch(x){}
-  e.waitUntil(self.registration.showNotification(d.title||'Randevu',{body:d.body||'',icon:'icon-192.png',badge:'icon-192.png',tag:d.id,data:d}))});
+  e.waitUntil(self.registration.showNotification(d.title||'Randevu',{body:d.body||'',icon:'icon-192.png',badge:'icon-192.png',tag:d.id,data:d,renotify:true,requireInteraction:true,silent:false}))});
 self.addEventListener('notificationclick',e=>{e.notification.close();const id=(e.notification.data||{}).id;
   e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>{
     for(const c of cs){if('focus' in c){c.postMessage({open:id});return c.focus()}}
