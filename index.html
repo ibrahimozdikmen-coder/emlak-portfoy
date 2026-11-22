@@ -55,7 +55,7 @@ h3{font-size:13px;color:var(--mu);margin:18px 0 8px;text-transform:uppercase;let
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let db,me='',names={},L=[],A=[],C=[],S=[],F=[],U={},reg=0,tab='p',q='',finMonth=new Date().toISOString().slice(0,7),tickTimer=0;
+let db,me='',names={},L=[],A=[],C=[],S=[],F=[],U={},reg=0,tab='p',q='',finMonth=new Date().toISOString().slice(0,7),tickTimer=0,callSyncAt=0,importedCallKeys={};
 const nm=id=>(U[id]&&U[id].name)||names[id]||'Bir kullanıcı';
 const note=t=>{$('#nt').textContent=t};
 const hm=s=>String(s).slice(11,16).replace(':','.');
@@ -65,7 +65,7 @@ const money=n=>n?Number(n).toLocaleString('tr-TR')+' ₺':'';
 const priceInput=n=>{const d=String(n==null?'':n).replace(/\D/g,'');return d?Number(d).toLocaleString('tr-TR'):''};
 const priceValue=n=>Number(String(n||'').replace(/\D/g,''))||0;
 const phoneDigits=n=>String(n||'').replace(/\D/g,'');
-const phoneLink=n=>{let d=phoneDigits(n);if(d.startsWith('0'))d='90'+d.slice(1);return d?'tel:+'+d:''};
+const phoneLink=n=>{let d=phoneDigits(n);if(d.startsWith('0'))d='90'+d.slice(1);else if(d.length===10&&d.startsWith('5'))d='90'+d;return d?'tel:+'+d:''};
 const phoneInput=n=>{let d=phoneDigits(n);if(d.startsWith('90')&&d.length===12)d='0'+d.slice(2);if(d&&d[0]!=='0')d='0'+d;d=d.slice(0,11);if(d.length<=1)return d;if(d.length<=4)return d.slice(0,1)+' ('+d.slice(1);let r=d.slice(0,1)+' ('+d.slice(1,4);if(d.length>4)r+=') '+d.slice(4,7);if(d.length>7)r+=' '+d.slice(7,9);if(d.length>9)r+=' '+d.slice(9,11);return r};
 const listingRooms=['1+0','1+1','1,5+1','2+0','2+1','2+1 Dubleks','3+1','3+1 Dubleks','4+1','4+1 Dubleks','5+1','5+2','6+1','7+1','8+1','9+1','10+1','Stüdyo'];
 const listingFloors=['Bodrum kat','Bahçe katı','Zemin kat','Giriş katı','Yüksek giriş','Düz giriş',...Array.from({length:30},(_,i)=>(i+1)+'. kat'),'Çatı katı','Teras katı','Çatı dubleksi'];
@@ -95,6 +95,8 @@ let pend=new URLSearchParams(location.search).get('a');
 /* Android APK, bildirime dokunulduğunda ilgili randevuyu açmak için bu fonksiyonu çağırır. */
 window.openAppointmentFromAndroid=id=>{pend=id;render()};
 window.androidNotificationPermission=granted=>{if(granted){$('#bn').hidden=true;alert('Bildirimler açıldı ✅')}else alert('Bildirim izni verilmedi. Telefon ayarlarından Armax Gayrimenkul için bildirimlere izin verin.')};
+window.importAndroidCalls=async rows=>{if(!Array.isArray(rows)||!db)return;const fresh=rows.filter(x=>x&&x.key&&!importedCallKeys[x.key]&&!C.some(c=>c.callKey===x.key));for(const x of fresh){importedCallKeys[x.key]=1;try{await db.collection('calls').add({number:x.number||'',name:'',dir:'Gelen',note:'Rehberde kayıtlı olmayan numara',auto:true,callKey:x.key,by:me,at:+x.at||Date.now()})}catch(e){delete importedCallKeys[x.key]}}if(fresh.length)toast(fresh.length+' yeni gelen arama kaydı eklendi.',()=>act.tab('c'))};
+window.androidCallAccess=granted=>{if(!granted)alert('Arama kayıtlarını eşitlemek için telefon ve rehber izni gerekli. Telefon ayarlarından Armax Gayrimenkul izinlerini açın.')};
 const mk=c=>({
  onSnapshot(next,err){const load=async()=>{const r=await sb.from('docs').select('id,data').eq('col',c);if(r.error)return err&&err(r.error);next({docs:r.data.map(x=>({id:x.id,data:()=>x.data}))})};
   load();const ch=sb.channel('r-'+c).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'col=eq.'+c},load).subscribe();return()=>sb.removeChannel(ch)},
@@ -129,8 +131,9 @@ function render(){if(pend&&A.find(a=>a.id===pend)){const i=pend;pend=null;setTim
     const cats={};items.forEach(x=>{const k=x.category||'Diğer';cats[k]=(cats[k]||0)+(+x.amount||0)*(x.type==='Gelir'?1:-1)});
     el.innerHTML='<div class="bar"><input id="f_month" type="month" value="'+esc(finMonth)+'"></div><div class="grid" style="margin-bottom:12px"><div class="card row" style="display:block;border-color:#87c9a8"><div class="mu">Gelir</div><div class="pr">'+money(income)+'</div></div><div class="card row" style="display:block;border-color:#efb1aa"><div class="mu">Gider</div><div style="font-weight:700;color:var(--wa)">'+money(expense)+'</div></div></div><div class="card row" style="display:block"><div class="mu">Aylık net sonuç</div><div class="pr">'+money(net)+'</div></div><h3>Ay sonu otomatik raporu</h3><div class="card row" style="display:block">'+(Object.keys(cats).length?Object.entries(cats).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).map(([k,n])=>'<div class="kv"><b>'+esc(k)+'</b><span style="color:'+(n<0?'var(--wa)':'var(--ac)')+'">'+(n<0?'− ':'+ ')+money(Math.abs(n))+'</span></div>').join(''):'<div class="mu">Bu ay için henüz gelir veya gider eklenmedi.</div>')+'</div><h3>Hareketler</h3>'+(items.length?items.map(x=>'<div class="card row" data-a="vf" data-i="'+x.id+'" style="display:block"><div class="t">'+esc(x.source||x.category||x.type)+' <span class="tag">'+esc(x.type)+'</span></div><div class="mu">'+esc(x.date||'')+' · '+esc(x.category||'Diğer')+'</div><div style="font-weight:700;color:'+(x.type==='Gider'?'var(--wa)':'var(--ac)')+'">'+(x.type==='Gider'?'− ':'+ ')+money(x.amount)+'</div></div>').join(''):'<p class="empty">Bu ayda kayıt yok. “+ Gelir / gider ekle” ile başlayın.</p>');
   }else{
+    if(Date.now()-callSyncAt>15000){callSyncAt=Date.now();try{if(window.AndroidApp&&typeof window.AndroidApp.syncCalls==='function')window.AndroidApp.syncCalls(me)}catch(e){}}
     const s=[...C].sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,10);
-    el.innerHTML='<div id="nt" style="display:block">Tüm çalışanların son 10 arama kaydı burada görünür. Yeni kaydı “+ Arama ekle” ile ekleyebilirsiniz.</div>'+
+    el.innerHTML='<div id="nt" style="display:block">Tüm çalışanların son 10 arama kaydı burada görünür. Android’de rehberde olmayan gelen numaralar otomatik eşitlenir.</div><div class="acts" style="margin:0 0 12px"><button class="btn g" data-a="syncCalls">📲 Son aramaları eşitle</button></div>'+
     (s.length?s.map(c=>'<div class="card row" style="display:block"><div class="t">'+esc(c.name||c.number)+' <span class="tag">'+esc(c.dir)+'</span></div><div class="mu"><a href="'+phoneLink(c.number)+'" style="color:var(--ac)">'+esc(phoneInput(c.number))+'</a> · '+new Date(c.at).toLocaleString('tr-TR',{dateStyle:'medium',timeStyle:'short'})+' · '+esc(nm(c.by))+'</div>'+(c.note?'<div>'+esc(c.note)+'</div>':'')+'</div>').join(''):'<p class="empty">Arama kaydı yok.</p>');
   }
 }
@@ -221,6 +224,7 @@ const act={
   ea(i){const a=A.find(y=>y.id===i);if(a)formA(a)},
   ua(i){const a=A.find(y=>y.id===i);if(!a)return;if(!v('a_c').trim()||!v('a_s'))return alert('Müşteri adı ve tarih/saat gerekli.');replace('appointments',a,{customer:v('a_c').trim(),phone:v('a_p'),start:v('a_s'),listing:v('a_l'),note:v('a_n')})},
   sc(){if(!v('c_n').trim())return alert('Numara gerekli.');save('calls',{number:v('c_n').trim(),name:v('c_a'),dir:v('c_d'),note:v('c_t')})},
+  syncCalls(){try{if(window.AndroidApp&&typeof window.AndroidApp.syncCalls==='function'){callSyncAt=Date.now();window.AndroidApp.syncCalls(me)}else alert('Otomatik arama eşitleme Android uygulamasında kullanılabilir.')}catch(e){alert('Arama kayıtları eşitlenemedi.')}},
   sf(){if(!v('m_so').trim()||!priceValue(v('m_am')))return alert('Açıklama ve tutar gerekli.');save('finances',{type:v('m_ty'),category:v('m_ca'),source:v('m_so').trim(),amount:priceValue(v('m_am')),date:v('m_dt')||dk(new Date()),receipt:financeReceipt,notes:v('m_no')})},
   ef(i){const x=F.find(y=>y.id===i);if(x)formF(x)},
   uf(i){const x=F.find(y=>y.id===i);if(!x)return;if(!v('m_so').trim()||!priceValue(v('m_am')))return alert('Açıklama ve tutar gerekli.');replace('finances',x,{type:v('m_ty'),category:v('m_ca'),source:v('m_so').trim(),amount:priceValue(v('m_am')),date:v('m_dt')||dk(new Date()),receipt:financeReceipt,notes:v('m_no')})},
