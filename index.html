@@ -3,23 +3,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Armax Gayrimenkul</title><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png"><meta name="theme-color" content="#1d5fd1"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Armax Gayrimenkul"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script><script src="config.js"></script>
 <style>
-:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#eef4fd;--card:#fff;--tx:#10243f;--mu:#5a6f8c;--ac:#1d5fd1;--acx:#fff;--bd:#d3e2f6;--wa:#c62828}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1726;--card:#14233a;--tx:#e6eefb;--mu:#93a7c4;--ac:#5b9bff;--acx:#06162e;--bd:#223555;--wa:#ff8a84;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0d1726;--card:#14233a;--tx:#e6eefb;--mu:#93a7c4;--ac:#5b9bff;--acx:#06162e;--bd:#223555;--wa:#ff8a84;color-scheme:dark}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f5f7fb;--card:#fff;--tx:#10243f;--mu:#667792;--ac:#0756b8;--acx:#fff;--bd:#dbe3ef;--wa:#bd3030}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1726;--card:#14233a;--tx:#e6eefb;--mu:#9cadc7;--ac:#5b9bff;--acx:#06162e;--bd:#2a3d5c;--wa:#ff9991;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1726;--card:#14233a;--tx:#e6eefb;--mu:#9cadc7;--ac:#5b9bff;--acx:#06162e;--bd:#2a3d5c;--wa:#ff9991;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px 8px;max-width:760px;margin:auto}
+.appbar{position:sticky;top:0;z-index:10;background:var(--bg);background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--bd)}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px 8px;max-width:760px;margin:auto}
+.brand{display:flex;align-items:center;min-width:0}.brand img{display:block;width:126px;height:42px;object-fit:contain;object-position:left center}.brand span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 h1{font-size:19px;margin:0;color:var(--ac)}
-nav{display:flex;gap:6px;padding:0 16px 10px;max-width:760px;margin:auto;overflow-x:auto}
-nav button{flex:1 0 auto;padding:9px 10px;border:1px solid var(--bd);background:var(--card);color:var(--mu);border-radius:10px;font:inherit;cursor:pointer;white-space:nowrap}
-nav button.on{background:var(--ac);color:var(--acx);border-color:var(--ac);font-weight:600}
-main{max-width:760px;margin:auto;padding:0 16px 90px}
+.head-actions{display:flex;gap:6px}.head-actions .btn{padding:8px 10px;font-size:13px}
+nav{display:flex;gap:2px;padding:0 12px 8px;max-width:760px;margin:auto;overflow-x:auto;scrollbar-width:none}nav::-webkit-scrollbar{display:none}
+nav button{flex:1 0 auto;padding:9px 11px 10px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--mu);font:600 13px/1.2 inherit;cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--ac);border-bottom-color:var(--ac)}
+main{max-width:760px;margin:auto;padding:16px 16px 96px}
 .bar{display:flex;gap:8px;margin-bottom:12px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid label{margin-top:10px}
 input,select,textarea{width:100%;padding:10px 11px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit}
 textarea{min-height:70px;resize:vertical}
 label{display:block;font-size:12.5px;color:var(--mu);margin:10px 0 4px}
-.btn{border:0;background:var(--ac);color:var(--acx);padding:10px 16px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn{border:0;background:var(--ac);color:var(--acx);padding:10px 16px;border-radius:9px;font:inherit;font-weight:650;cursor:pointer;white-space:nowrap}
 .btn.g{background:transparent;color:var(--tx);border:1px solid var(--bd)}
 .btn.d{background:transparent;color:var(--wa);border:1px solid var(--bd)}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:14px;margin-bottom:10px;overflow:hidden;display:flex;cursor:pointer}
@@ -38,17 +41,18 @@ h3{font-size:13px;color:var(--mu);margin:18px 0 8px;text-transform:uppercase;let
 .sheet h2{margin:0 0 4px;font-size:18px}
 .ph{display:flex;gap:8px;overflow-x:auto;margin:8px 0}
 .ph img{height:150px;border-radius:10px;flex:none}
-.acts{display:flex;gap:8px;margin-top:16px}.acts .btn{flex:1}
+.acts{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}.acts .btn{flex:1}
 .kv{margin:8px 0}.kv b{display:block;font-size:12px;color:var(--mu);font-weight:500}
 #ts{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:10px;right:10px;z-index:30;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
 .ti{pointer-events:auto;background:var(--ac);color:var(--acx);padding:12px 14px;border-radius:12px;max-width:520px;width:100%;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer;font-weight:600}
 #nt{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;margin:0 0 10px;color:var(--mu);font-size:13px}
 #nt:empty{display:none}
-#au{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}#au[hidden]{display:none}#au .box{width:100%;max-width:380px}
+#au{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}#au[hidden]{display:none}#au .box{width:100%;max-width:380px}.login-brand{display:block;width:210px;height:72px;object-fit:contain;object-position:left center;margin:0 0 18px}
+@media(max-width:430px){.brand img{width:108px;height:36px}.head-actions .btn{padding:8px;font-size:15px}.head-actions .btn span{display:none}nav button{padding-left:10px;padding-right:10px}main{padding-left:12px;padding-right:12px}}
 </style></head><body>
 <div id="ts"></div>
-<header><h1>🏠 Armax Gayrimenkul</h1><div style="display:flex;gap:6px"><button class="btn g" data-a="prof" id="bp">👤 Profil</button><button class="btn g" data-a="notif" id="bn">🔔 Bildirim</button></div></header>
-<nav><button data-a="tab" data-i="p" class="on">Portföy</button><button data-a="tab" data-i="z">Sonuçlanan</button><button data-a="tab" data-i="a">Randevular</button><button data-a="tab" data-i="s">Daire Arayanlar</button><button data-a="tab" data-i="f">Gelir &amp; Gider</button><button data-a="tab" data-i="c">Aramalar</button></nav>
+<div class="appbar"><header><div class="brand"><img src="logo.png" alt="Armax Gayrimenkul logosu"><span>Armax Gayrimenkul</span></div><div class="head-actions"><button class="btn g" data-a="prof" id="bp" aria-label="Profil">👤 <span>Profil</span></button><button class="btn g" data-a="notif" id="bn" aria-label="Bildirimleri aç">🔔 <span>Bildirim</span></button></div></header>
+<nav aria-label="Ana menü"><button data-a="tab" data-i="p" class="on">Portföy</button><button data-a="tab" data-i="z">Sonuçlanan</button><button data-a="tab" data-i="a">Randevu</button><button data-a="tab" data-i="s">Müşteriler</button><button data-a="tab" data-i="f">Kasa</button><button data-a="tab" data-i="c">Aramalar</button></nav></div>
 <main><div id="nt"></div><div id="main"><p class="empty">Yükleniyor…</p></div></main>
 <button class="btn fab" data-a="add" id="fab">+ Daire ekle</button>
 <div id="m" hidden></div><div id="au" hidden></div>
@@ -97,8 +101,9 @@ let pend=new URLSearchParams(location.search).get('a');
 window.openAppNotification=key=>{if(String(key||'').startsWith('match:')){setTimeout(()=>act.vm(String(key).slice(6)),0)}else{pend=key;render()}};
 window.openAppointmentFromAndroid=id=>window.openAppNotification(id);
 window.androidNotificationPermission=granted=>{if(granted){$('#bn').hidden=true;alert('Bildirimler açıldı ✅')}else alert('Bildirim izni verilmedi. Telefon ayarlarından Armax Gayrimenkul için bildirimlere izin verin.')};
-window.importAndroidCalls=async rows=>{if(!Array.isArray(rows)||!db)return;const fresh=rows.filter(x=>x&&x.key&&!importedCallKeys[x.key]&&!C.some(c=>c.callKey===x.key));for(const x of fresh){importedCallKeys[x.key]=1;try{await db.collection('calls').add({number:x.number||'',name:'',dir:'Gelen',note:'Rehberde kayıtlı olmayan numara',auto:true,callKey:x.key,by:me,at:+x.at||Date.now()})}catch(e){delete importedCallKeys[x.key]}}if(fresh.length)toast(fresh.length+' yeni gelen arama kaydı eklendi.',()=>act.tab('c'))};
+window.importAndroidCalls=async rows=>{if(!Array.isArray(rows)||!db)return;const fresh=rows.filter(x=>x&&x.key&&!importedCallKeys[x.key]&&!C.some(c=>c.callKey===x.key));let added=0,failed=0;for(const x of fresh){importedCallKeys[x.key]=1;try{await db.collection('calls').add({number:x.number||'',name:'',dir:'Gelen',note:'Rehberde kayıtlı olmayan numara',auto:true,callKey:x.key,by:me,at:+x.at||Date.now()});added++}catch(e){failed++;delete importedCallKeys[x.key]}}if(failed)alert('Arama kayıtları ortak listeye kaydedilemedi. İnternet bağlantısını kontrol edip yeniden deneyin.');if(added)toast(added+' yeni gelen arama kaydı eklendi.',()=>act.tab('c'))};
 window.androidCallAccess=granted=>{if(!granted)alert('Arama kayıtlarını eşitlemek için telefon ve rehber izni gerekli. Telefon ayarlarından Armax Gayrimenkul izinlerini açın.')};
+window.androidCallSyncStatus=(count,error)=>{if(error)return alert('Arama kayıtları okunamadı: '+error);if(!count)toast('Eşitlenecek rehber dışı gelen arama bulunamadı.',()=>act.tab('c'))};
 const mk=c=>({
  onSnapshot(next,err){const load=async()=>{const r=await sb.from('docs').select('id,data').eq('col',c);if(r.error)return err&&err(r.error);next({docs:r.data.map(x=>({id:x.id,data:()=>x.data}))})};
   load();const ch=sb.channel('r-'+c).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'col=eq.'+c},load).subscribe();return()=>sb.removeChannel(ch)},
@@ -153,7 +158,7 @@ function formL(x){
   '<div class="grid"><div><label>Fiyat (₺)</label><input id="f_p" type="text" inputmode="numeric" value="'+esc(priceInput(x&&x.price))+'"></div><div><label>Oda sayısı</label><select id="f_r">'+options(listingRooms,x&&x.rooms,'Seçiniz')+'</select></div></div>'+fld('Net m²','f_m','number',x&&x.m2)+
   '<div class="grid"><div><label>Bina kat sayısı</label><select id="f_bf">'+options(buildingFloorCounts,x&&x.buildingFloors,'Seçiniz')+'</select></div><div><label>Bulunduğu kat</label><select id="f_fl">'+options(listingFloors,x&&x.floor,'Seçiniz')+'</select></div></div>'+
   '<div class="grid"><div><label>Oturum durumu</label><select id="f_oc">'+options(['Boş','Kiracılı','Mal sahibi oturuyor'],x&&x.occupancy||'Boş')+'</select></div><div><label>İlan durumu</label><select id="f_st">'+options(['Aktif','Satıldı','Kiralandı'],x&&x.status||'Aktif')+'</select></div></div><label>Gerçekleşen satış / kira tutarı (₺)</label><input id="f_rp" type="text" inputmode="numeric" value="'+esc(priceInput(x&&x.resultPrice))+'">'+
-  '<div class="grid"><div><label>Site durumu</label><select id="f_si">'+options(['Site içi','Site dışı'],x&&x.site||'Site dışı')+'</select></div><div><label>Cephe</label><select id="f_fr">'+options([...new Set([...frontOptions,x&&x.front].filter(Boolean))],x&&x.front||'Peyzaj cephe')+'</select></div></div>'+
+  '<div class="grid"><div><label>Site durumu</label><select id="f_si">'+options(['Site içi','Site dışı'],x&&x.site||'Site dışı')+'</select></div><div><label>Cephe</label><input id="f_fr" value="'+esc(x&&x.front)+'" placeholder="Örn. Peyzaj cephe, güney"></div></div>'+ 
   '<div class="grid"><div><label>Balkon</label><select id="f_b"><option value="Var"'+(!x||x.balcony!=='Yok'?' selected':'')+'>Var</option><option value="Yok"'+(x&&x.balcony==='Yok'?' selected':'')+'>Yok</option></select></div><div>'+fld('Banyo sayısı','f_ba','number',x&&x.bathrooms)+'</div></div>'+fld('Adres','f_ad','text',x&&x.address)+
   fld('Mal sahibi','f_own','text',x&&(x.owner||x.cname))+fld('İletişim numarası','f_ph','tel',phoneInput(x&&x.phone))+
   '<label>Daire fotoğrafı (1 adet)</label><input id="f_im" type="file" accept="image/*">'+(listingPhoto?'<div class="ph"><img id="f_prev" src="'+esc(listingPhoto)+'" alt="Daire fotoğrafı"></div>':'<div class="ph" id="f_photo_wrap"></div>')+
@@ -188,7 +193,7 @@ function formS(x){
   '<label>Aradığı işlem</label><select id="s_k">'+opt(['Satılık','Kiralık','Fark etmez'],x&&x.kind||'Satılık')+'</select>'+
   '<label>Aradığı taşınmaz türü</label><select id="s_ty">'+opt(['Daire','Rezidans','Villa','Müstakil ev','Yazlık','Dubleks','Ofis','Dükkan','Arsa','Fark etmez'],x&&x.type||'Daire')+'</select>'+
   '<label>Oda tercihi</label><select id="s_r">'+opt(['1+0','1+1','2+1','2+1 ve üzeri','3+1','3+1 ve üzeri','4+1','5+1 ve üzeri','Fark etmez'],x&&x.rooms||'Fark etmez')+'</select>'+
-  '<div class="grid"><div><label>Site tercihi</label><select id="s_si">'+opt(['Fark etmez','Site içi','Site dışı'],x&&x.site||'Fark etmez')+'</select></div><div><label>Cephe tercihi</label><select id="s_fr">'+opt(['Fark etmez',...frontOptions],x&&x.front||'Fark etmez')+'</select></div></div>'+
+  '<div class="grid"><div><label>Site tercihi</label><select id="s_si">'+opt(['Fark etmez','Site içi','Site dışı'],x&&x.site||'Fark etmez')+'</select></div><div><label>Cephe tercihi</label><input id="s_fr" value="'+esc(x&&x.front)+'" placeholder="Örn. Peyzaj cephe, güney"></div></div>'+ 
   '<div class="grid"><div>'+fld('En az net m²','s_mn','number',x&&x.minM2)+'</div><div>'+fld('En çok net m²','s_mx','number',x&&x.maxM2)+'</div></div>'+
   '<div class="grid"><div><label>En az bütçe (₺)</label><input id="s_bn" type="text" inputmode="numeric" value="'+esc(priceInput(x&&x.minBudget))+'"></div><div><label>En çok bütçe (₺)</label><input id="s_bx" type="text" inputmode="numeric" value="'+esc(priceInput(x&&x.maxBudget))+'"></div></div>'+
   '<label>Kat tercihi</label><select id="s_f">'+opt(['Fark etmez','Giriş kat veya üzeri (zemin/bodrum olmasın)','Sadece giriş kat','Sadece ara kat','Ara kat veya yüksek kat','Yüksek kat tercih','Zemin kat olur','Bodrum kat olur','Asansörlü üst kat','Çatı katı / dubleks'],x&&x.floor||'Fark etmez')+'</select><label>Tercih edilen kesin kat (opsiyonel)</label><select id="s_fx">'+opt(['Fark etmez',...listingFloors],x&&x.exactFloor||'Fark etmez')+'</select>'+
@@ -203,13 +208,14 @@ async function replace(c,x,d){try{const data=Object.assign(d,{by:x.by,at:x.at,up
 const normal=s=>String(s||'').toLocaleLowerCase('tr-TR').trim();
 const roomCount=s=>+((String(s||'').match(/\d+/)||[])[0]||0);
 function floorMatch(l,s){if(!s||s==='Fark etmez')return true;if(s==='Giriş kat veya üzeri (zemin/bodrum olmasın)')return !/bodrum|zemin/i.test(l.floor||'');if(s==='Sadece giriş kat')return /giriş/i.test(l.floor||'');if(s==='Sadece ara kat')return /^\d+\. kat$/i.test(l.floor||'');if(s==='Ara kat veya yüksek kat'||s==='Yüksek kat tercih'||s==='Asansörlü üst kat')return /kat/i.test(l.floor||'');if(s==='Zemin kat olur')return /zemin|giriş|kat/i.test(l.floor||'');if(s==='Bodrum kat olur')return /bodrum|zemin|giriş|kat/i.test(l.floor||'');if(s==='Çatı katı / dubleks')return /çatı|dubleks/i.test(l.floor||'');return true}
+function frontMatch(listing,request){const wanted=normal(request);if(!wanted||wanted==='fark etmez')return true;const listed=normal(listing);if(!listed)return false;if(listed.includes(wanted)||wanted.includes(listed))return true;const words=wanted.split(/[^a-zçğıöşü]+/i).filter(w=>w.length>2&&!['cephe','manzara','manzaralı'].includes(w));return words.length>0&&words.every(w=>listed.includes(w))}
 function listingMatches(l,s){
   if(l.status==='Satıldı'||l.status==='Kiralandı')return false;
   if(s.kind&&s.kind!=='Fark etmez'&&s.kind!==l.kind)return false;
   if(s.type&&s.type!=='Fark etmez'&&s.type!=='Daire')return false;
   if(s.rooms&&s.rooms!=='Fark etmez'){const sr=roomCount(s.rooms),lr=roomCount(l.rooms);if(s.rooms.includes('ve üzeri')?lr<sr:normal(s.rooms)!==normal(l.rooms))return false}
   if(s.site&&s.site!=='Fark etmez'&&normal(s.site)!==normal(l.site))return false;
-  if(s.front&&s.front!=='Fark etmez'&&!normal(l.front).includes(normal(s.front)))return false;
+  if(!frontMatch(l.front,s.front))return false;
   if(s.minM2&&(+l.m2||0)<+s.minM2)return false;if(s.maxM2&&(+l.m2||0)>+s.maxM2)return false;
   if(s.minBudget&&(+l.price||0)<+s.minBudget)return false;if(s.maxBudget&&(+l.price||0)>+s.maxBudget)return false;
   if(s.exactFloor&&s.exactFloor!=='Fark etmez'&&normal(s.exactFloor)!==normal(l.floor))return false;
@@ -258,7 +264,8 @@ const act={
     '<div class="kv"><b>Mal sahibi</b>'+esc(x.owner||x.cname||'')+' '+(x.phone?'<a href="'+phoneLink(x.phone)+'" style="color:var(--ac)">'+esc(phoneInput(x.phone))+'</a>':'—')+'</div>'+
     (x.notes?'<div class="kv"><b>Notlar</b>'+esc(x.notes)+'</div>':'')+
     '<div class="kv"><b>Ekleyen</b>'+esc(nm(x.by))+' · '+new Date(x.at).toLocaleDateString('tr-TR')+'</div>'+
-    '<div class="acts"><button class="btn g" data-a="x">Kapat</button><button class="btn g" data-a="el" data-i="'+x.id+'">Düzenle</button><button class="btn d" data-a="dl" data-i="'+x.id+'">Sil</button></div>')},
+    '<div class="acts"><button class="btn g" data-a="x">Kapat</button>'+(x.status==='Satıldı'||x.status==='Kiralandı'?'':'<button class="btn" data-a="done" data-i="'+x.id+'">'+(x.kind==='Kiralık'?'Kiralandı':'Satıldı')+'</button>')+'<button class="btn g" data-a="el" data-i="'+x.id+'">Düzenle</button><button class="btn d" data-a="dl" data-i="'+x.id+'">Sil</button></div>')},
+  async done(i){const x=L.find(y=>y.id===i);if(!x)return;const status=x.kind==='Kiralık'?'Kiralandı':'Satıldı';if(!confirm('Bu daireyi “'+status+'” olarak sonuçlananlara taşıyalım mı?'))return;const entered=prompt('Gerçekleşen '+(x.kind==='Kiralık'?'kira':'satış')+' tutarı (₺) — boş bırakabilirsiniz:',priceInput(x.resultPrice||x.price));if(entered===null)return;const {id,...data}=x;tab='z';await replace('listings',x,Object.assign(data,{status,resultPrice:priceValue(entered)}))},
   vs(i){const x=S.find(y=>y.id===i);if(!x)return;const budget=[x.minBudget?money(x.minBudget):'',x.maxBudget?money(x.maxBudget):''].filter(Boolean).join(' – ')||'—';modal('<h2>'+esc(x.name)+'</h2><div class="kv"><b>İletişim</b><a href="'+phoneLink(x.phone)+'" style="color:var(--ac)">'+esc(phoneInput(x.phone))+'</a></div><div class="kv"><b>Talep tarihi</b>'+esc(x.requestedAt||'—')+'</div><div class="kv"><b>Aradığı</b>'+esc([x.kind,x.type,x.rooms].filter(Boolean).join(' · '))+'</div><div class="kv"><b>Site / Cephe</b>'+esc([x.site,x.front].filter(Boolean).join(' · ')||'—')+'</div><div class="kv"><b>Net m²</b>'+esc([x.minM2||'—',x.maxM2||'—'].join(' – '))+'</div><div class="kv"><b>Bütçe</b>'+esc(budget)+'</div><div class="kv"><b>Kat tercihi</b>'+esc([x.floor,x.exactFloor&&x.exactFloor!=='Fark etmez'?x.exactFloor:''].filter(Boolean).join(' · ')||'—')+'</div><div class="kv"><b>Özellikler</b>'+esc([x.balcony,x.elevator,x.furnished].filter(Boolean).join(' · ')||'—')+'</div><div class="kv"><b>Bölge</b>'+esc(x.area||'—')+'</div>'+(x.notes?'<div class="kv"><b>Notlar</b>'+esc(x.notes)+'</div>':'')+'<div class="acts"><button class="btn g" data-a="x">Kapat</button><button class="btn g" data-a="es" data-i="'+x.id+'">Düzenle</button></div>')},
   vm(key){const parts=String(key||'').split('|'),l=L.find(x=>x.id===parts[0]),s=S.find(x=>x.id===parts[1]);if(!l||!s)return alert('Eşleşen kayıt artık bulunamadı.');modal('<h2>Uygun müşteri bulundu</h2><div class="kv"><b>Portföy</b>'+esc(l.title)+' · '+esc([l.rooms,l.site,l.front,money(l.price)].filter(Boolean).join(' · '))+'</div><div class="kv"><b>Müşteri</b>'+esc(s.name)+' · <a href="'+phoneLink(s.phone)+'" style="color:var(--ac)">'+esc(phoneInput(s.phone))+'</a></div><div class="kv"><b>Talebi</b>'+esc([s.rooms,s.site,s.front,s.maxBudget?money(s.maxBudget)+' bütçe':''].filter(Boolean).join(' · '))+'</div><div class="acts"><button class="btn g" data-a="x">Kapat</button><button class="btn g" data-a="vl" data-i="'+l.id+'">Portföyü aç</button><button class="btn" data-a="vs" data-i="'+s.id+'">Müşteriyi aç</button></div>')},
   va(i){const a=A.find(y=>y.id===i);if(!a)return;const l=L.find(y=>y.id===a.listing);
@@ -303,7 +310,7 @@ function tick(){
   }
 }
 
-function showAuth(sig){$('#au').hidden=false;$('#au').innerHTML='<div class="box"><h1 style="margin-bottom:12px">🏠 Armax Gayrimenkul</h1>'+(sig?'':fld('Ad Soyad *','g_n'))+fld('E-posta','g_e','email')+fld('Şifre (en az 6 karakter)','g_p','password')+'<div id="ge" class="mu" style="color:var(--wa);margin-top:8px"></div><div class="acts"><button class="btn" data-a="go" data-i="'+(sig?1:0)+'">'+(sig?'Giriş yap':'Kayıt ol')+'</button></div><div class="acts"><button class="btn g" data-a="sw" data-i="'+(sig?0:1)+'">'+(sig?'Hesabım yok, kayıt ol':'Zaten hesabım var')+'</button></div></div>'}
+function showAuth(sig){$('#au').hidden=false;$('#au').innerHTML='<div class="box"><img class="login-brand" src="logo.png" alt="Armax Gayrimenkul">'+(sig?'':fld('Ad Soyad *','g_n'))+fld('E-posta','g_e','email')+fld('Şifre (en az 6 karakter)','g_p','password')+'<div id="ge" class="mu" style="color:var(--wa);margin-top:8px"></div><div class="acts"><button class="btn" data-a="go" data-i="'+(sig?1:0)+'">'+(sig?'Giriş yap':'Kayıt ol')+'</button></div><div class="acts"><button class="btn g" data-a="sw" data-i="'+(sig?0:1)+'">'+(sig?'Hesabım yok, kayıt ol':'Zaten hesabım var')+'</button></div></div>'}
 async function boot(s){
   me=s.user.id;$('#au').hidden=true;
   sub('listings',x=>L=x);sub('appointments',x=>A=x);sub('seekers',x=>S=x);sub('calls',x=>C=x);sub('finances',x=>F=x);
