@@ -102,7 +102,7 @@ let pend=new URLSearchParams(location.search).get('a');
 /* Android APK, bildirime dokunulduğunda ilgili randevuyu açmak için bu fonksiyonu çağırır. */
 window.openAppNotification=key=>{if(String(key||'').startsWith('match:')){setTimeout(()=>act.vm(String(key).slice(6)),0)}else{pend=key;render()}};
 window.openAppointmentFromAndroid=id=>window.openAppNotification(id);
-window.androidNotificationPermission=granted=>{if(granted){$('#bn').hidden=true;alert('Bildirimler açıldı ✅')}else alert('Bildirim izni verilmedi. Telefon ayarlarından Armax Gayrimenkul için bildirimlere izin verin.')};
+window.androidNotificationPermission=granted=>{if(granted){$('#bn').hidden=true}else alert('Bildirim izni verilmedi. Telefon ayarlarından Armax Gayrimenkul için bildirimlere izin verin.')};
 window.importAndroidCalls=async rows=>{if(!Array.isArray(rows)||!db)return;const fresh=rows.filter(x=>x&&x.key&&!importedCallKeys[x.key]&&!C.some(c=>c.callKey===x.key));let added=0,failed=0;for(const x of fresh){importedCallKeys[x.key]=1;try{await db.collection('calls').add({number:x.number||'',name:'',dir:'Gelen',note:'Rehberde kayıtlı olmayan numara',auto:true,callKey:x.key,by:me,at:+x.at||Date.now()});added++}catch(e){failed++;delete importedCallKeys[x.key]}}if(failed)alert('Arama kayıtları ortak listeye kaydedilemedi. İnternet bağlantısını kontrol edip yeniden deneyin.');if(added)toast(added+' yeni gelen arama kaydı eklendi.',()=>act.tab('c'))};
 window.androidCallAccess=granted=>{if(!granted)alert('Arama kayıtlarını eşitlemek için telefon ve rehber izni gerekli. Telefon ayarlarından Armax Gayrimenkul izinlerini açın.')};
 window.androidCallSyncStatus=(count,error)=>{if(error)return alert('Arama kayıtları okunamadı: '+error);if(!count)toast('Eşitlenecek rehber dışı gelen arama bulunamadı.',()=>act.tab('c'))};
@@ -205,8 +205,8 @@ function formS(x){
   '<label>Ek istekler ve notlar</label><textarea id="s_no">'+esc(x&&x.notes)+'</textarea><div class="acts"><button class="btn g" data-a="x">Vazgeç</button><button class="btn" data-a="'+(x?'us':'ss')+'"'+(x?' data-i="'+x.id+'"':'')+'>Kaydet</button></div>');
 }
 const v=id=>($('#'+id)||{}).value||'';
-async function save(c,d){try{const meta=Object.assign(d,{by:me,at:Date.now()}),added=await db.collection(c).add(meta);if(c==='listings')notifyMatches(Object.assign({id:added&&added.id},meta));closeM()}catch(e){alert('Kaydedilemedi: '+((e&&e.message)||e))}}
-async function replace(c,x,d){try{const data=Object.assign(d,{by:x.by,at:x.at,updatedAt:Date.now()});await db.doc(c+'/'+x.id).set(data);if(c==='listings')notifyMatches(Object.assign({id:x.id},data));closeM()}catch(e){alert('Kaydedilemedi: '+((e&&e.message)||e))}}
+async function save(c,d){try{const meta=Object.assign(d,{by:me,at:Date.now()}),added=await db.collection(c).add(meta);if(c==='listings')notifyMatches(Object.assign({id:added&&added.id},meta));if(c==='appointments')scheduleAndroidReminder(Object.assign({id:added&&added.id},meta));closeM()}catch(e){alert('Kaydedilemedi: '+((e&&e.message)||e))}}
+async function replace(c,x,d){try{const data=Object.assign(d,{by:x.by,at:x.at,updatedAt:Date.now()});await db.doc(c+'/'+x.id).set(data);if(c==='listings')notifyMatches(Object.assign({id:x.id},data));if(c==='appointments'){cancelAndroidReminder(x.id);scheduleAndroidReminder(Object.assign({id:x.id},data))}closeM()}catch(e){alert('Kaydedilemedi: '+((e&&e.message)||e))}}
 const normal=s=>String(s||'').toLocaleLowerCase('tr-TR').trim();
 const roomCount=s=>+((String(s||'').match(/\d+/)||[])[0]||0);
 function floorMatch(l,s){if(!s||s==='Fark etmez')return true;if(s==='Giriş kat veya üzeri (zemin/bodrum olmasın)')return !/bodrum|zemin/i.test(l.floor||'');if(s==='Sadece giriş kat')return /giriş/i.test(l.floor||'');if(s==='Sadece ara kat')return /^\d+\. kat$/i.test(l.floor||'');if(s==='Ara kat veya yüksek kat'||s==='Yüksek kat tercih'||s==='Asansörlü üst kat')return /kat/i.test(l.floor||'');if(s==='Zemin kat olur')return /zemin|giriş|kat/i.test(l.floor||'');if(s==='Bodrum kat olur')return /bodrum|zemin|giriş|kat/i.test(l.floor||'');if(s==='Çatı katı / dubleks')return /çatı|dubleks/i.test(l.floor||'');return true}
@@ -276,7 +276,7 @@ const act={
     (l?'<div class="kv"><b>Daire</b>'+esc(l.title)+' — '+esc(l.address||'')+'</div>':'')+(a.note?'<div class="kv"><b>Not</b>'+esc(a.note)+'</div>':'')+
     '<div class="acts"><button class="btn g" data-a="x">Kapat</button><button class="btn g" data-a="ea" data-i="'+a.id+'">Düzenle</button><button class="btn d" data-a="da" data-i="'+a.id+'">Sil</button></div>')},
   async dl(i){if(confirm('Bu daire silinsin mi?')){try{await db.doc('listings/'+i).delete();closeM()}catch(e){alert('Silinemedi')}}},
-  async da(i){if(confirm('Bu randevu silinsin mi?')){try{await db.doc('appointments/'+i).delete();closeM()}catch(e){alert('Silinemedi')}}},
+  async da(i){if(confirm('Bu randevu silinsin mi?')){try{await db.doc('appointments/'+i).delete();cancelAndroidReminder(i);closeM()}catch(e){alert('Silinemedi')}}},
   async notif(){push(true)},
   async go(i){const e=v('g_e').trim(),p=v('g_p'),n=v('g_n').trim(),E=t=>{$('#ge').textContent=t};
     if(!e||p.length<6)return E('E-posta ve en az 6 karakterli şifre gerekli.');
@@ -298,15 +298,19 @@ document.addEventListener('change',e=>{if(e.target.id==='p_cat'){portfolioCatego
 
 /* Hatırlatmalar: randevudan 1 saat önce + her gün 10:00 özeti (sayfa/uygulama açıkken) */
 function toast(msg,fn){const d=document.createElement('div');d.className='ti';d.textContent=msg;d.onclick=()=>{d.remove();fn()};$('#ts').appendChild(d);setTimeout(()=>d.remove(),60000)}
-function ping(a,msg){
+function ping(a,msg,localScheduled){
   toast(msg,()=>act.va(a.id));
+  try{if(localScheduled&&window.AndroidApp&&typeof window.AndroidApp.scheduleReminder==='function')return}catch(e){}
   try{if(window.AndroidApp&&typeof window.AndroidApp.notify==='function'){window.AndroidApp.notify('Randevu hatırlatma',msg,a.id);return}}catch(e){}
   try{if('Notification' in window&&Notification.permission==='granted'){const n=new Notification('Randevu hatırlatma',{body:msg});n.onclick=()=>{window.focus();act.va(a.id)}}}catch(e){}
 }
 const msg=a=>nm(a.by)+' bugün saat '+hm(a.start)+'’da '+a.customer+' ile randevunuz var.';
+function scheduleAndroidReminder(a){try{if(!a||a.by!==me||!window.AndroidApp||typeof window.AndroidApp.scheduleReminder!=='function')return;const start=new Date(a.start).getTime(),now=Date.now();if(!Number.isFinite(start)||start<=now)return;window.AndroidApp.scheduleReminder(a.id,msg(a),String(Math.max(now+3000,start-3600000)))}catch(e){}}
+function cancelAndroidReminder(id){try{if(window.AndroidApp&&typeof window.AndroidApp.cancelReminder==='function')window.AndroidApp.cancelReminder(id)}catch(e){}}
+function scheduleAndroidReminders(){A.forEach(scheduleAndroidReminder)}
 function tick(){
   const now=new Date(),td=dk(now);
-  A.forEach(a=>{const d=new Date(a.start)-now;if(d>0&&d<=3600e3&&!seen('h'+a.id)){mark('h'+a.id);ping(a,'1 saat kaldı: '+msg(a))}});
+  A.forEach(a=>{const d=new Date(a.start)-now;if(d>0&&d<=3600e3&&!seen('h'+a.id)){mark('h'+a.id);ping(a,'1 saat kaldı: '+msg(a),true)}});
   if(now.getHours()>=10&&!seen('d'+td)&&A.length){
     mark('d'+td);
     A.filter(a=>a.start.slice(0,10)===td&&new Date(a.start)>now).sort((a,b)=>a.start<b.start?-1:1).forEach(a=>ping(a,msg(a)));
@@ -316,7 +320,7 @@ function tick(){
 function showAuth(sig){$('#au').hidden=false;$('#au').innerHTML='<div class="box"><img class="login-brand" src="logo.png" alt="Armax Gayrimenkul">'+(sig?'':fld('Ad Soyad *','g_n'))+fld('E-posta','g_e','email')+fld('Şifre (en az 6 karakter)','g_p','password')+'<div id="ge" class="mu" style="color:var(--wa);margin-top:8px"></div><div class="acts"><button class="btn" data-a="go" data-i="'+(sig?1:0)+'">'+(sig?'Giriş yap':'Kayıt ol')+'</button></div><div class="acts"><button class="btn g" data-a="sw" data-i="'+(sig?0:1)+'">'+(sig?'Hesabım yok, kayıt ol':'Zaten hesabım var')+'</button></div></div>'}
 async function boot(s){
   me=s.user.id;$('#au').hidden=true;
-  sub('listings',x=>L=x);sub('appointments',x=>A=x);sub('seekers',x=>S=x);sub('calls',x=>C=x);sub('finances',x=>F=x);
+  sub('listings',x=>L=x);sub('appointments',x=>{A=x;scheduleAndroidReminders()});sub('seekers',x=>S=x);sub('calls',x=>C=x);sub('finances',x=>F=x);
   sub('users',x=>{U={};x.forEach(u=>U[u.id]=u);if(!reg){reg=1;if(!U[me])auto(s)}});
   if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.open){pend=e.data.open;render()}});
   push(false).catch(()=>{});
