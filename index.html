@@ -84,6 +84,9 @@ async function permitted(e){
   try{const r=await sb.from('staff_emails').select('email').eq('email',email).maybeSingle();return !!r.data}catch(err){return false}
 }
 let pend=new URLSearchParams(location.search).get('a');
+/* Android APK, bildirime dokunulduğunda ilgili randevuyu açmak için bu fonksiyonu çağırır. */
+window.openAppointmentFromAndroid=id=>{pend=id;render()};
+window.androidNotificationPermission=granted=>{if(granted){$('#bn').hidden=true;alert('Bildirimler açıldı ✅')}else alert('Bildirim izni verilmedi. Telefon ayarlarından Emlak Portföy için bildirimlere izin verin.')};
 const mk=c=>({
  onSnapshot(next,err){const load=async()=>{const r=await sb.from('docs').select('id,data').eq('col',c);if(r.error)return err&&err(r.error);next({docs:r.data.map(x=>({id:x.id,data:()=>x.data}))})};
   load();const ch=sb.channel('r-'+c).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'col=eq.'+c},load).subscribe();return()=>sb.removeChannel(ch)},
@@ -229,6 +232,7 @@ document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value;ren
 function toast(msg,fn){const d=document.createElement('div');d.className='ti';d.textContent=msg;d.onclick=()=>{d.remove();fn()};$('#ts').appendChild(d);setTimeout(()=>d.remove(),60000)}
 function ping(a,msg){
   toast(msg,()=>act.va(a.id));
+  try{if(window.AndroidApp&&typeof window.AndroidApp.notify==='function'){window.AndroidApp.notify('Randevu hatırlatma',msg,a.id);return}}catch(e){}
   try{if('Notification' in window&&Notification.permission==='granted'){const n=new Notification('Randevu hatırlatma',{body:msg});n.onclick=()=>{window.focus();act.va(a.id)}}}catch(e){}
 }
 const msg=a=>nm(a.by)+' bugün saat '+hm(a.start)+'’da '+a.customer+' ile randevunuz var.';
@@ -253,6 +257,7 @@ async function boot(s){
 async function auto(s){const n=(s.user.user_metadata||{}).name;if(n){try{await db.doc('users/'+me).set({name:n,role:'Danışman',at:Date.now()})}catch(e){}}else act.prof()}
 const b64=s=>{const p='='.repeat((4-s.length%4)%4),r=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...r].map(c=>c.charCodeAt(0)))};
 async function push(ask){
+  try{if(window.AndroidApp&&typeof window.AndroidApp.enableNotifications==='function'){window.AndroidApp.enableNotifications();return}}catch(e){}
   if(!('serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window)){if(ask)alert('Bu tarayıcı bildirimi desteklemiyor. iPhone’da önce Safari’de Paylaş → “Ana Ekrana Ekle” yapın, uygulamayı ana ekrandaki simgeden açın.');return}
   if(!CFG.vapid){if(ask)alert('Bildirim anahtarı henüz ayarlanmamış.');return}
   const w=await navigator.serviceWorker.register('sw.js');await navigator.serviceWorker.ready;
