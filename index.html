@@ -137,9 +137,11 @@ function render(){if(pend&&A.find(a=>a.id===pend)){const i=pend;pend=null;setTim
     (f.length?f.map(x=>'<div class="card" data-a="vl" data-i="'+x.id+'">'+(x.image?'<div class="im"><img src="'+esc(x.image)+'" alt="'+esc(x.title)+'"></div>':'')+'<div class="bd"'+(x.image?'':' style="padding-left:16px"')+'><div class="t">'+esc(x.title)+'</div><div class="pr">'+money(x.price)+'</div><div class="mu">'+esc([x.propertyType||'Daire',x.propertyType==='Dükkan'?x.shopType:x.rooms,x.propertyType==='Dükkan'?x.shopUse:x.homeStyle,x.m2?x.m2+' net m²':'',x.floor].filter(Boolean).join(' · '))+'</div><div class="mu">'+esc(x.address)+'</div><div style="margin-top:4px"><span class="tag">'+esc(listingCategory(x))+'</span>'+(x.siteName?'<span class="tag">'+esc(x.siteName)+'</span>':'')+'<span class="tag">'+esc(x.kind||'Satılık')+'</span>'+(x.status&&x.status!=='Aktif'?'<span class="tag">'+esc(x.status)+'</span>':'')+'<span class="tag">'+esc(nm(x.by))+'</span></div></div></div>').join(''):'<p class="empty">'+(completed?'Bu kategoride sonuçlanan portföy yok.':'Bu kategoride portföy yok. “+ Portföy ekle” ile ilk kaydı oluşturun.')+'</p>');
     if(act){const i=$('#q');i.focus();i.setSelectionRange(q.length,q.length)}
   }else if(tab==='a'){
-    const now=new Date(),td=dk(now),s=[...A].sort((a,b)=>a.start<b.start?-1:1);
-    const g=(t,l,fn)=>{const r=s.filter(fn);return r.length?'<h3>'+t+'</h3>'+r.map(rowA).join(''):''};
-    el.innerHTML=(g('Bugün','',a=>a.start.slice(0,10)===td)+g('Yaklaşan','',a=>a.start.slice(0,10)>td)+g('Geçmiş','',a=>a.start.slice(0,10)<td).split('</h3>').map((x,i)=>x).join('</h3>'))||'<p class="empty">Randevu yok.</p>';
+    const now=new Date(),td=dk(now),s=[...A].sort((a,b)=>a.start<b.start?-1:1),open=s.filter(a=>appointmentStatus(a)==='Planlandı');
+    const g=(t,fn)=>{const r=open.filter(fn);return r.length?'<h3>'+t+'</h3>'+r.map(rowA).join(''):''};
+    const fixed=(t,status,empty)=>{const r=s.filter(a=>appointmentStatus(a)===status).sort((a,b)=>(b.updatedAt||b.at||0)-(a.updatedAt||a.at||0));return '<h3>'+t+'</h3>'+(r.length?r.map(rowA).join(''):'<p class="empty">'+empty+'</p>')};
+    const active=g('Bugün',a=>a.start.slice(0,10)===td)+g('Yaklaşan',a=>a.start.slice(0,10)>td)+g('Geçmiş — sonuç bekliyor',a=>a.start.slice(0,10)<td);
+    el.innerHTML=(active||'<h3>Açık randevular</h3><p class="empty">Açık randevu yok.</p>')+fixed('Tamamlanan randevular — geldi','Tamamlandı','Henüz tamamlanan randevu yok.')+fixed('İptal / gelmedi','Gelmedi / İptal','Henüz iptal veya gelinmeyen randevu yok.');
   }else if(tab==='s'){
     const f=S.filter(x=>(x.name+' '+x.phone+' '+x.area+' '+x.rooms+' '+x.floor).toLowerCase().includes(q.toLowerCase())).sort((a,b)=>(b.at||0)-(a.at||0));
     el.innerHTML='<div class="bar"><input id="q" placeholder="Ara: ad, telefon, bölge…" value="'+esc(q)+'"></div>'+
@@ -157,7 +159,9 @@ function render(){if(pend&&A.find(a=>a.id===pend)){const i=pend;pend=null;setTim
     (s.length?s.map(c=>'<div class="card row" style="display:block"><div class="t">'+esc(c.name||c.number)+' <span class="tag">'+esc(c.dir)+'</span></div><div class="mu"><a href="'+phoneLink(c.number)+'" style="color:var(--ac)">'+esc(phoneInput(c.number))+'</a> · '+new Date(c.at).toLocaleString('tr-TR',{dateStyle:'medium',timeStyle:'short'})+' · '+esc(nm(c.by))+'</div>'+(c.note?'<div>'+esc(c.note)+'</div>':'')+'</div>').join(''):'<p class="empty">Arama kaydı yok.</p>');
   }
 }
-function rowA(a){return '<div class="card row" data-a="va" data-i="'+a.id+'" style="display:block"><div class="t">'+hm(a.start)+' · '+esc(a.customer)+'</div><div class="mu">'+dl(a.start)+' · '+esc(nm(a.by))+(a.note?' · '+esc(a.note):'')+'</div></div>'}
+function appointmentStatus(a){return a.outcome||'Planlandı'}
+function appointmentStatusText(a){const s=appointmentStatus(a);return s==='Tamamlandı'?'Tamamlandı — geldi':s==='Gelmedi / İptal'?'Gelmedi / iptal':'Planlandı'}
+function rowA(a){return '<div class="card row" data-a="va" data-i="'+a.id+'" style="display:block"><div class="t">'+hm(a.start)+' · '+esc(a.customer)+'</div><div class="mu">'+dl(a.start)+' · '+esc(nm(a.by))+' · '+esc(appointmentStatusText(a))+(a.note?' · '+esc(a.note):'')+'</div></div>'}
 
 function modal(h){const m=$('#m');m.innerHTML='<div class="sheet">'+h+'</div>';m.hidden=false}
 function closeM(){$('#m').hidden=true;$('#m').innerHTML=''}
@@ -217,7 +221,7 @@ function formS(x){
 }
 const v=id=>($('#'+id)||{}).value||'';
 async function save(c,d){try{const meta=Object.assign(d,{by:me,at:Date.now()}),added=await db.collection(c).add(meta);if(c==='listings')notifyMatches(Object.assign({id:added&&added.id},meta));if(c==='appointments')scheduleAndroidReminder(Object.assign({id:added&&added.id},meta));closeM()}catch(e){alert('Kaydedilemedi: '+((e&&e.message)||e))}}
-async function replace(c,x,d){try{const data=Object.assign(d,{by:x.by,at:x.at,updatedAt:Date.now()});await db.doc(c+'/'+x.id).set(data);if(c==='listings')notifyMatches(Object.assign({id:x.id},data));if(c==='appointments'){cancelAndroidReminder(x.id);scheduleAndroidReminder(Object.assign({id:x.id},data))}closeM()}catch(e){alert('Kaydedilemedi: '+((e&&e.message)||e))}}
+async function replace(c,x,d){try{const data=Object.assign(d,{by:x.by,at:x.at,updatedAt:Date.now()});await db.doc(c+'/'+x.id).set(data);if(c==='listings')notifyMatches(Object.assign({id:x.id},data));if(c==='appointments'){cancelAndroidReminder(x.id);if(appointmentStatus(data)==='Planlandı')scheduleAndroidReminder(Object.assign({id:x.id},data))}closeM()}catch(e){alert('Kaydedilemedi: '+((e&&e.message)||e))}}
 const normal=s=>String(s||'').toLocaleLowerCase('tr-TR').trim();
 const roomCount=s=>+((String(s||'').match(/\d+/)||[])[0]||0);
 function floorMatch(l,s){if(!s||s==='Fark etmez')return true;if(s==='Giriş kat veya üzeri (zemin/bodrum olmasın)')return !/bodrum|zemin/i.test(l.floor||'');if(s==='Sadece giriş kat')return /giriş/i.test(l.floor||'');if(s==='Sadece ara kat')return /^\d+\. kat$/i.test(l.floor||'');if(s==='Ara kat veya yüksek kat'||s==='Yüksek kat tercih'||s==='Asansörlü üst kat')return /kat/i.test(l.floor||'');if(s==='Zemin kat olur')return /zemin|giriş|kat/i.test(l.floor||'');if(s==='Bodrum kat olur')return /bodrum|zemin|giriş|kat/i.test(l.floor||'');if(s==='Çatı katı / dubleks')return /çatı|dubleks/i.test(l.floor||'');return true}
@@ -262,9 +266,9 @@ const act={
   es(i){const x=S.find(y=>y.id===i);if(x)formS(x)},
   us(i){const x=S.find(y=>y.id===i);if(!x)return;if(!v('s_n').trim()||!v('s_p').trim())return alert('Ad soyad ve iletişim numarası gerekli.');replace('seekers',x,{name:v('s_n').trim(),phone:v('s_p'),requestedAt:v('s_dt')||dk(new Date()),kind:v('s_k'),type:v('s_ty'),rooms:v('s_r'),homeStyle:v('s_hs'),site:v('s_si'),siteName:v('s_sn').trim(),front:v('s_fr'),minM2:+v('s_mn')||0,maxM2:+v('s_mx')||0,minBudget:priceValue(v('s_bn')),maxBudget:priceValue(v('s_bx')),floor:v('s_f'),exactFloor:v('s_fx'),balcony:v('s_b'),elevator:v('s_e'),furnished:v('s_fu'),area:v('s_a'),notes:v('s_no')})},
   sa(){if(!v('a_c').trim()||!v('a_s'))return alert('Müşteri adı ve tarih/saat gerekli.');
-    save('appointments',{customer:v('a_c').trim(),phone:v('a_p'),start:v('a_s'),listing:v('a_l'),note:v('a_n')})},
+    save('appointments',{customer:v('a_c').trim(),phone:v('a_p'),start:v('a_s'),listing:v('a_l'),note:v('a_n'),outcome:'Planlandı'})},
   ea(i){const a=A.find(y=>y.id===i);if(a)formA(a)},
-  ua(i){const a=A.find(y=>y.id===i);if(!a)return;if(!v('a_c').trim()||!v('a_s'))return alert('Müşteri adı ve tarih/saat gerekli.');replace('appointments',a,{customer:v('a_c').trim(),phone:v('a_p'),start:v('a_s'),listing:v('a_l'),note:v('a_n')})},
+  ua(i){const a=A.find(y=>y.id===i);if(!a)return;if(!v('a_c').trim()||!v('a_s'))return alert('Müşteri adı ve tarih/saat gerekli.');replace('appointments',a,{customer:v('a_c').trim(),phone:v('a_p'),start:v('a_s'),listing:v('a_l'),note:v('a_n'),outcome:appointmentStatus(a)})},
   sc(){if(!v('c_n').trim())return alert('Numara gerekli.');save('calls',{number:v('c_n').trim(),name:v('c_a'),dir:v('c_d'),note:v('c_t')})},
   syncCalls(){try{if(window.AndroidApp&&typeof window.AndroidApp.syncCalls==='function'){callSyncAt=Date.now();window.AndroidApp.syncCalls(me)}else alert('Otomatik arama eşitleme Android uygulamasında kullanılabilir.')}catch(e){alert('Arama kayıtları eşitlenemedi.')}},
   sf(){if(!v('m_so').trim()||!priceValue(v('m_am')))return alert('Açıklama ve tutar gerekli.');save('finances',{type:v('m_ty'),category:v('m_ca'),source:v('m_so').trim(),amount:priceValue(v('m_am')),date:v('m_dt')||dk(new Date()),receipt:financeReceipt,notes:v('m_no')})},
@@ -287,9 +291,11 @@ const act={
   vm(key){const parts=String(key||'').split('|'),l=L.find(x=>x.id===parts[0]),s=S.find(x=>x.id===parts[1]);if(!l||!s)return alert('Eşleşen kayıt artık bulunamadı.');modal('<h2>Uygun müşteri bulundu</h2><div class="kv"><b>Portföy</b>'+esc(l.title)+' · '+esc([l.rooms,l.site,l.front,money(l.price)].filter(Boolean).join(' · '))+'</div><div class="kv"><b>Müşteri</b>'+esc(s.name)+' · <a href="'+phoneLink(s.phone)+'" style="color:var(--ac)">'+esc(phoneInput(s.phone))+'</a></div><div class="kv"><b>Talebi</b>'+esc([s.rooms,s.site,s.front,s.maxBudget?money(s.maxBudget)+' bütçe':''].filter(Boolean).join(' · '))+'</div><div class="acts"><button class="btn g" data-a="x">Kapat</button><button class="btn g" data-a="vl" data-i="'+l.id+'">Portföyü aç</button><button class="btn" data-a="vs" data-i="'+s.id+'">Müşteriyi aç</button></div>')},
   va(i){const a=A.find(y=>y.id===i);if(!a)return;const l=L.find(y=>y.id===a.listing);
     modal('<h2>Randevu</h2><div class="kv"><b>Müşteri</b>'+esc(a.customer)+(a.phone?' · <a href="'+phoneLink(a.phone)+'" style="color:var(--ac)">'+esc(phoneInput(a.phone))+'</a>':'')+'</div>'+
-    '<div class="kv"><b>Zaman</b>'+dl(a.start)+' · '+hm(a.start)+'</div><div class="kv"><b>Randevuyu alan</b>'+esc(nm(a.by))+'</div>'+
+    '<div class="kv"><b>Zaman</b>'+dl(a.start)+' · '+hm(a.start)+'</div><div class="kv"><b>Durum</b>'+esc(appointmentStatusText(a))+'</div><div class="kv"><b>Randevuyu alan</b>'+esc(nm(a.by))+'</div>'+
     (l?'<div class="kv"><b>Daire</b>'+esc(l.title)+' — '+esc(l.address||'')+'</div>':'')+(a.note?'<div class="kv"><b>Not</b>'+esc(a.note)+'</div>':'')+
-    '<div class="acts"><button class="btn g" data-a="x">Kapat</button><button class="btn g" data-a="ea" data-i="'+a.id+'">Düzenle</button><button class="btn d" data-a="da" data-i="'+a.id+'">Sil</button></div>')},
+    '<div class="acts"><button class="btn g" data-a="x">Kapat</button>'+(appointmentStatus(a)==='Planlandı'?'<button class="btn" data-a="adone" data-i="'+a.id+'">Tamamla — geldi</button><button class="btn d" data-a="amiss" data-i="'+a.id+'">Gelmedi / iptal</button>':'')+'</div><div class="acts"><button class="btn g" data-a="ea" data-i="'+a.id+'">Düzenle</button><button class="btn d" data-a="da" data-i="'+a.id+'">Sil</button></div>')},
+  async adone(i){const a=A.find(y=>y.id===i);if(!a||!confirm('Bu randevuya müşterinin geldiğini işaretleyelim mi?'))return;const {id,...data}=a;await replace('appointments',a,Object.assign(data,{outcome:'Tamamlandı'}))},
+  async amiss(i){const a=A.find(y=>y.id===i);if(!a||!confirm('Bu randevuyu gelmedi / iptal olarak işaretleyelim mi?'))return;const {id,...data}=a;await replace('appointments',a,Object.assign(data,{outcome:'Gelmedi / İptal'}))},
   async dl(i){if(confirm('Bu daire silinsin mi?')){try{await db.doc('listings/'+i).delete();closeM()}catch(e){alert('Silinemedi')}}},
   async da(i){if(confirm('Bu randevu silinsin mi?')){try{await db.doc('appointments/'+i).delete();cancelAndroidReminder(i);closeM()}catch(e){alert('Silinemedi')}}},
   async notif(){moreOpen=false;render();push(true)},
@@ -320,15 +326,15 @@ function ping(a,msg,localScheduled){
   try{if('Notification' in window&&Notification.permission==='granted'){const n=new Notification('Randevu hatırlatma',{body:msg});n.onclick=()=>{window.focus();act.va(a.id)}}}catch(e){}
 }
 const msg=a=>nm(a.by)+' bugün saat '+hm(a.start)+'’da '+a.customer+' ile randevunuz var.';
-function scheduleAndroidReminder(a){try{if(!a||a.by!==me||!window.AndroidApp||typeof window.AndroidApp.scheduleReminder!=='function')return;const start=new Date(a.start).getTime(),now=Date.now();if(!Number.isFinite(start)||start<=now)return;window.AndroidApp.scheduleReminder(a.id,msg(a),String(Math.max(now+3000,start-3600000)))}catch(e){}}
+function scheduleAndroidReminder(a){try{if(!a||appointmentStatus(a)!=='Planlandı'||a.by!==me||!window.AndroidApp||typeof window.AndroidApp.scheduleReminder!=='function')return;const start=new Date(a.start).getTime(),now=Date.now();if(!Number.isFinite(start)||start<=now)return;window.AndroidApp.scheduleReminder(a.id,msg(a),String(Math.max(now+3000,start-3600000)))}catch(e){}}
 function cancelAndroidReminder(id){try{if(window.AndroidApp&&typeof window.AndroidApp.cancelReminder==='function')window.AndroidApp.cancelReminder(id)}catch(e){}}
 function scheduleAndroidReminders(){A.forEach(scheduleAndroidReminder)}
 function tick(){
   const now=new Date(),td=dk(now);
-  A.forEach(a=>{const d=new Date(a.start)-now;if(d>0&&d<=3600e3&&!seen('h'+a.id)){mark('h'+a.id);ping(a,'1 saat kaldı: '+msg(a),true)}});
-  if(now.getHours()>=10&&!seen('d'+td)&&A.length){
+  A.filter(a=>appointmentStatus(a)==='Planlandı').forEach(a=>{const d=new Date(a.start)-now;if(d>0&&d<=3600e3&&!seen('h'+a.id)){mark('h'+a.id);ping(a,'1 saat kaldı: '+msg(a),true)}});
+  if(now.getHours()>=10&&!seen('d'+td)&&A.some(a=>appointmentStatus(a)==='Planlandı')){
     mark('d'+td);
-    A.filter(a=>a.start.slice(0,10)===td&&new Date(a.start)>now).sort((a,b)=>a.start<b.start?-1:1).forEach(a=>ping(a,msg(a)));
+    A.filter(a=>appointmentStatus(a)==='Planlandı'&&a.start.slice(0,10)===td&&new Date(a.start)>now).sort((a,b)=>a.start<b.start?-1:1).forEach(a=>ping(a,msg(a)));
   }
 }
 
