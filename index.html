@@ -167,8 +167,23 @@ function appointmentStatus(a){return a.outcome||'Planlandı'}
 function appointmentStatusText(a){const s=appointmentStatus(a);return s==='Tamamlandı'?'Tamamlandı — geldi':s==='Gelmedi / İptal'?'Gelmedi / iptal':'Planlandı'}
 function rowA(a){return '<div class="card row" data-a="va" data-i="'+a.id+'" style="display:block"><div class="t">'+hm(a.start)+' · '+esc(a.customer)+'</div><div class="mu">'+dl(a.start)+' · '+esc(nm(a.by))+' · '+esc(appointmentStatusText(a))+(a.note?' · '+esc(a.note):'')+'</div></div>'}
 
-function modal(h){const m=$('#m');m.innerHTML='<div class="sheet">'+h+'</div>';m.hidden=false}
-function closeM(){$('#m').hidden=true;$('#m').innerHTML=''}
+let modalStack=[],tabStack=[];
+function modal(h){const m=$('#m');if(!m.hidden&&m.firstElementChild)modalStack.push(m.firstElementChild);m.innerHTML='<div class="sheet">'+h+'</div>';m.hidden=false}
+function closeM(){modalStack=[];$('#m').hidden=true;$('#m').innerHTML=''}
+function appBack(){
+  if(!$('#viewer').hidden){act.closeViewer();return true}
+  const m=$('#m');
+  if(!m.hidden){
+    if(photoBusy||m.querySelector('#f_im:disabled')){alert('Fotoğraflar işlenirken lütfen bekleyin.');return true}
+    if(m.querySelector('input,textarea,select')&&!confirm('Bu ekrandaki kaydedilmemiş değişiklikler kaybolabilir. Geri dönülsün mü?'))return true;
+    if(modalStack.length){m.replaceChildren(modalStack.pop())}else closeM();return true;
+  }
+  if(moreOpen){moreOpen=false;render();return true}
+  if(tabStack.length){tab=tabStack.pop();q='';render();return true}
+  if(tab!=='p'){tab='p';q='';render();return true}
+  return false;
+}
+window.handleAndroidBack=appBack;
 const fld=(l,id,t,v)=>'<label>'+l+'</label><input id="'+id+'" type="'+(t||'text')+'" value="'+esc(v||'')+'">';
 
 let listingPhoto='',listingPhotos=[],photoBusy=false,galleryItems=[],galleryIndex=0,galleryListing='';
@@ -256,7 +271,7 @@ function listingMatches(l,s){
 function notifyMatches(listing){if(!listing.id)return;const hits=S.filter(s=>listingMatches(listing,s));hits.forEach(s=>{const key=listing.id+'|'+s.id,msg='Eklediğiniz portföye uygun müşteri bulundu: '+s.name+'.';toast(msg,()=>act.vm(key));try{if(window.AndroidApp&&typeof window.AndroidApp.notify==='function')window.AndroidApp.notify('Portföy eşleşmesi',msg,'match:'+key);else if('Notification' in window&&Notification.permission==='granted'){const n=new Notification('Portföy eşleşmesi',{body:msg});n.onclick=()=>{window.focus();act.vm(key)}}}catch(e){}})}
 
 const act={
-  tab(i){tab=i;moreOpen=false;render()},
+  tab(i){if(tab!==i){tabStack.push(tab);if(tabStack.length>30)tabStack.shift()}tab=i;moreOpen=false;render()},
   more(){moreOpen=!moreOpen;render()},
   x:closeM,
   prof(){moreOpen=false;render();const u=U[me]||{};modal('<h2>'+(u.name?'Profilim':'Kayıt ol')+'</h2><div class="mu">Adınız, ilanlarda ve randevu bildirimlerinde görünür. Tüm kullanıcılar yönetici yetkisine sahiptir.</div>'+fld('Ad Soyad *','u_n','text',u.name)+fld('Telefon','u_p','tel',phoneInput(u.phone))+'<div class="acts"><button class="btn g" data-a="x">Kapat</button><button class="btn d" data-a="out">Çıkış</button><button class="btn" data-a="su">Kaydet</button></div>')},
