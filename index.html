@@ -99,9 +99,14 @@ async function resolve(){
   const ids=[...new Set([...L,...A,...C].map(x=>x.by).filter(Boolean))].filter(i=>!(i in names));
   if(!ids.length)return;
 }
+let renderQueued=false,portfolioCacheTimer=0;
+const portfolioCacheKey=()=> 'armax-listings-v1:'+me;
+function queueRender(){if(renderQueued)return;renderQueued=true;requestAnimationFrame(()=>{renderQueued=false;render();resolve()})}
+function cachePortfolios(rows){clearTimeout(portfolioCacheTimer);const owner=me;portfolioCacheTimer=setTimeout(()=>{if(me!==owner)return;try{const payload=JSON.stringify(rows);if(payload.length<3500000)localStorage.setItem(portfolioCacheKey(),payload);else localStorage.removeItem(portfolioCacheKey())}catch(e){}},1000)}
 function sub(c,set){
+  if(c==='listings'){try{const cached=JSON.parse(localStorage.getItem(portfolioCacheKey())||'null');if(Array.isArray(cached)){set(cached);note('Kaydedilmiş portföyler gösteriliyor; güncel bilgiler alınıyor.');queueRender()}}catch(e){}}
   const t=setTimeout(()=>note('Veriler henüz alınamadı; çevrim dışı olabilirsiniz, bilgiler güncel olmayabilir.'),10000);
-  db.collection(c).onSnapshot(s=>{clearTimeout(t);note('');set(s.docs.map(d=>Object.assign({id:d.id},d.data())));render();resolve()},
+  db.collection(c).onSnapshot(s=>{clearTimeout(t);if(c==='listings')note('');const rows=s.docs.map(d=>Object.assign({id:d.id},d.data()));set(rows);if(c==='listings')cachePortfolios(rows);queueRender()},
     e=>{clearTimeout(t);note('Bağlantı hatası: '+((e&&e.message)||'bilinmeyen'))});
 }
 const sb=(CFG.url&&CFG.key)?supabase.createClient(CFG.url,CFG.key):null;
@@ -120,8 +125,13 @@ window.importAndroidCalls=async rows=>{if(!Array.isArray(rows)||!db)return;const
 window.androidCallAccess=granted=>{if(!granted)alert('Arama kayıtlarını eşitlemek için telefon ve rehber izni gerekli. Telefon ayarlarından Armax Gayrimenkul izinlerini açın.')};
 window.androidCallSyncStatus=(count,error)=>{if(error)return alert('Arama kayıtları okunamadı: '+error);if(!count)toast('Eşitlenecek rehber dışı gelen arama bulunamadı.',()=>act.tab('c'))};
 const mk=c=>({
- onSnapshot(next,err){const load=async()=>{const r=await sb.from('docs').select('id,data').eq('col',c);if(r.error)return err&&err(r.error);next({docs:r.data.map(x=>({id:x.id,data:()=>x.data}))})};
-  load();const ch=sb.channel('r-'+c).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'col=eq.'+c},load).subscribe();return()=>sb.removeChannel(ch)},
+ onSnapshot(next,err){let rows=new Map(),ready=false,running=false,again=false,closed=false,connected=false,buffer=[];
+  const publish=()=>next({docs:Array.from(rows.values(),x=>({id:x.id,data:()=>x.data}))});
+  const apply=p=>{const row=p.eventType==='DELETE'?p.old:p.new;if(!row||!row.id)return false;if(p.eventType==='DELETE')return rows.delete(row.id);if(!row.data)return false;rows.set(row.id,{id:row.id,data:row.data});return true};
+  const load=async()=>{if(closed)return;if(running){again=true;return}running=true;buffer=[];try{const r=await sb.from('docs').select('id,data').eq('col',c);if(r.error)throw r.error;if(closed)return;rows=new Map(r.data.map(x=>[x.id,x]));buffer.forEach(apply);ready=true;publish()}catch(e){if(err)err(e)}finally{running=false;if(again&&!closed){again=false;load()}}};
+  const changed=p=>{if(running)buffer.push(p);if(ready&&apply(p))publish()};
+  const ch=sb.channel('r-'+c).on('postgres_changes',{event:'INSERT',schema:'public',table:'docs',filter:'col=eq.'+c},changed).on('postgres_changes',{event:'UPDATE',schema:'public',table:'docs',filter:'col=eq.'+c},changed).on('postgres_changes',{event:'DELETE',schema:'public',table:'docs'},changed).subscribe(status=>{connected=status==='SUBSCRIBED';if(connected)load();else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED')note('Canlı bağlantı kesildi; yeniden bağlanılıyor, bilgiler gecikebilir.')});
+  const onVisible=()=>{if(document.visibilityState==='visible')load()};document.addEventListener('visibilitychange',onVisible);const retry=setInterval(()=>{if(!connected&&document.visibilityState==='visible')load()},15000);load();return()=>{closed=true;clearInterval(retry);document.removeEventListener('visibilitychange',onVisible);sb.removeChannel(ch)}},
  async add(d){const r=await sb.from('docs').insert({col:c,data:d}).select('id').single();if(r.error)throw r.error;return r.data}});
 if(sb)db={collection:mk,doc(p){const[c,id]=p.split('/');return{
  async set(d){const r=await sb.from('docs').upsert({id,col:c,data:d});if(r.error)throw r.error},
@@ -139,7 +149,7 @@ function render(){if(pend&&A.find(a=>a.id===pend)){const i=pend;pend=null;setTim
     const total=L.filter(x=>completed?(x.status==='Satıldı'||x.status==='Kiralandı'):(x.status!=='Satıldı'&&x.status!=='Kiralandı')).length;
     el.innerHTML='<div class="bar"><input id="q" placeholder="Ara: başlık, adres, telefon…" value="'+esc(q)+'"><select id="p_cat" aria-label="Portföy kategorisi">'+options(['Tümü',...portfolioCategories],portfolioCategory)+'</select></div><div class="mu" style="margin:-4px 0 12px"><b>'+esc(completed?'Sonuçlanan portföy: ':'Aktif portföy: ')+total+'</b> · Gösterilen: '+f.length+' · Fiyat sıralaması: düşükten yükseğe</div>'+
     (f.length?f.map(x=>'<div class="card" data-a="vl" data-i="'+x.id+'">'+(photosOf(x).length?'<div class="im"><img data-cover="'+esc(x.id)+'" alt="'+esc(x.title)+'"></div>':'')+'<div class="bd"'+(photosOf(x).length?'':' style="padding-left:16px"')+'><div class="t">'+esc(x.title)+'</div><div class="pr">'+money(x.price)+'</div><div class="mu">'+esc([x.propertyType||'Daire',x.propertyType==='Dükkan'?x.shopType:x.rooms,x.propertyType==='Dükkan'?x.shopUse:x.homeStyle,x.m2?x.m2+' net m²':'',x.floor].filter(Boolean).join(' · '))+'</div><div class="mu">'+esc(x.address)+'</div><div style="margin-top:4px"><span class="tag">'+esc(listingCategory(x))+'</span>'+(x.siteName?'<span class="tag">'+esc(x.siteName)+'</span>':'')+'<span class="tag">'+esc(x.kind||'Satılık')+'</span>'+(x.status&&x.status!=='Aktif'?'<span class="tag">'+esc(x.status)+'</span>':'')+'<span class="tag">'+esc(nm(x.by))+'</span></div></div></div>').join(''):'<p class="empty">'+(completed?'Bu kategoride sonuçlanan portföy yok.':'Bu kategoride portföy yok. “+ Portföy ekle” ile ilk kaydı oluşturun.')+'</p>');
-    el.querySelectorAll('[data-cover]').forEach(im=>{const x=L.find(v=>v.id===im.dataset.cover);if(x)loadPhoto(im,photosOf(x)[0])});if(act){const i=$('#q');i.focus();i.setSelectionRange(q.length,q.length)}
+    const covers=new Map(f.map(x=>[String(x.id),photosOf(x)[0]]));observePhotos(el.querySelectorAll('[data-cover]'),im=>covers.get(im.dataset.cover),'covers');if(act){const i=$('#q');i.focus();i.setSelectionRange(q.length,q.length)}
   }else if(tab==='a'){
     const now=new Date(),td=dk(now),s=[...A].sort((a,b)=>a.start<b.start?-1:1),open=s.filter(a=>appointmentStatus(a)==='Planlandı');
     const g=(t,fn)=>{const r=open.filter(fn);return r.length?'<h3>'+t+'</h3>'+r.map(rowA).join(''):''};
@@ -187,14 +197,15 @@ window.handleAndroidBack=appBack;
 const fld=(l,id,t,v)=>'<label>'+l+'</label><input id="'+id+'" type="'+(t||'text')+'" value="'+esc(v||'')+'">';
 
 let listingPhoto='',listingPhotos=[],photoBusy=false,galleryItems=[],galleryIndex=0,galleryListing='';
-const photoCache=new Map();
+const photoCache=new Map(),photoRequests=new Map(),photoObservers=new Map();
 const photosOf=x=>Array.isArray(x&&x.images)&&x.images.length?x.images:(x&&x.image?[x.image]:[]);
-async function photoUrl(path){if(!path)return '';if(path.startsWith('data:')||path.startsWith('blob:'))return path;const cached=photoCache.get(path);if(cached&&cached.until>Date.now())return cached.url;const r=await sb.storage.from('portfolio-photos').createSignedUrl(path,3600);if(r.error)throw r.error;photoCache.set(path,{url:r.data.signedUrl,until:Date.now()+3300000});return r.data.signedUrl}
-async function loadPhoto(img,path){try{img.src=await photoUrl(path)}catch(e){img.alt='Fotoğraf yüklenemedi'}}
+async function photoUrl(path){if(!path)return '';if(path.startsWith('data:')||path.startsWith('blob:'))return path;const cached=photoCache.get(path);if(cached&&cached.until>Date.now())return cached.url;if(photoRequests.has(path))return photoRequests.get(path);const pending=(async()=>{const r=await sb.storage.from('portfolio-photos').createSignedUrl(path,3600);if(r.error)throw r.error;photoCache.set(path,{url:r.data.signedUrl,until:Date.now()+3300000});return r.data.signedUrl})();photoRequests.set(path,pending);try{return await pending}finally{photoRequests.delete(path)}}
+async function loadPhoto(img,path){if(!img||!path)return;try{img.src=await photoUrl(path)}catch(e){img.alt='Fotoğraf yüklenemedi'}}
+function observePhotos(images,pathFor,key,root){const previous=photoObservers.get(key);if(previous)previous.disconnect();if(!('IntersectionObserver' in window)){images.forEach(im=>loadPhoto(im,pathFor(im)));return}const observer=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;observer.unobserve(entry.target);loadPhoto(entry.target,pathFor(entry.target))}},{root:root||null,rootMargin:'250px'});photoObservers.set(key,observer);images.forEach(im=>observer.observe(im))}
 function renderPhotoEditor(){const wrap=$('#f_photo_wrap');if(!wrap)return;$('#f_photo_count').textContent=listingPhotos.length+' / 35 fotoğraf · İlk fotoğraf vitrinde görünür';wrap.innerHTML=listingPhotos.map((p,i)=>'<div class="photo-item"><img data-photo-edit="'+i+'" alt="Fotoğraf '+(i+1)+'"><button type="button" class="btn g" data-a="removePhoto" data-i="'+i+'">Kaldır</button></div>').join('');wrap.querySelectorAll('[data-photo-edit]').forEach(im=>{const p=listingPhotos[+im.dataset.photoEdit];if(p.url)im.src=p.url;else loadPhoto(im,p.path)})}
 async function uploadListingPhotos(){const paths=[];for(const p of listingPhotos){if(p.path){paths.push(p.path);continue}const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);const id=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');const path=me+'/'+id+'.jpg';const blob=await (await fetch(p.url)).blob();const r=await sb.storage.from('portfolio-photos').upload(path,blob,{contentType:'image/jpeg'});if(r.error)throw r.error;p.path=path;paths.push(path)}return paths}
 async function saveListingWithPhotos(data,existing){if(photoBusy)return;photoBusy=true;const button=$('[data-a="'+(existing?'ul':'sl')+'"]');if(button){button.disabled=true;button.textContent='Fotoğraflar yükleniyor…'}try{data.images=await uploadListingPhotos();data.image='';if(existing)await replace('listings',existing,data);else await save('listings',data)}catch(e){alert('Fotoğraflar yüklenemedi: '+(e.message||e))}finally{photoBusy=false;if(button&&button.isConnected){button.disabled=false;button.textContent='Kaydet'}}}
-function showGallery(index,full){if(!galleryItems.length)return;galleryIndex=(index+galleryItems.length)%galleryItems.length;const target=full?$('#viewer'):$('#gallery');if(!target)return;target.innerHTML=(full?'<div class="acts"><button class="btn" data-a="closeViewer">Kapat</button></div>':'')+'<img class="gallery-main" id="gallery_image" alt="Portföy fotoğrafı '+(galleryIndex+1)+'">'+(full?'':'<div class="acts"><button class="btn g" data-a="openViewer">Büyüt</button></div>')+'<div class="acts"><button class="btn g" data-a="photoPrev">‹ Önceki</button><span class="mu">'+(galleryIndex+1)+' / '+galleryItems.length+'</span><button class="btn g" data-a="photoNext">Sonraki ›</button></div>'+(full?'':'<div class="gallery-thumbs">'+galleryItems.map((p,i)=>'<button class="'+(i===galleryIndex?'active':'')+'" data-a="photoSelect" data-i="'+i+'" aria-label="Fotoğraf '+(i+1)+'"><img data-thumb="'+i+'" alt=""></button>').join('')+'</div>');loadPhoto(target.querySelector('#gallery_image'),galleryItems[galleryIndex]);target.querySelectorAll('[data-thumb]').forEach(im=>loadPhoto(im,galleryItems[+im.dataset.thumb]));}
+function showGallery(index,full){if(!galleryItems.length)return;galleryIndex=(index+galleryItems.length)%galleryItems.length;const target=full?$('#viewer'):$('#gallery');if(!target)return;target.innerHTML=(full?'<div class="acts"><button class="btn" data-a="closeViewer">Kapat</button></div>':'')+'<img class="gallery-main" id="gallery_image" alt="Portföy fotoğrafı '+(galleryIndex+1)+'">'+(full?'':'<div class="acts"><button class="btn g" data-a="openViewer">Büyüt</button></div>')+'<div class="acts"><button class="btn g" data-a="photoPrev">‹ Önceki</button><span class="mu">'+(galleryIndex+1)+' / '+galleryItems.length+'</span><button class="btn g" data-a="photoNext">Sonraki ›</button></div>'+(full?'':'<div class="gallery-thumbs">'+galleryItems.map((p,i)=>'<button class="'+(i===galleryIndex?'active':'')+'" data-a="photoSelect" data-i="'+i+'" aria-label="Fotoğraf '+(i+1)+'"><img data-thumb="'+i+'" alt=""></button>').join('')+'</div>');loadPhoto(target.querySelector('#gallery_image'),galleryItems[galleryIndex]);const items=galleryItems.slice();observePhotos(target.querySelectorAll('[data-thumb]'),im=>items[+im.dataset.thumb],'gallery',target.querySelector('.gallery-thumbs'));}
 function formL(x){
   listingPhoto=x&&x.image||'';listingPhotos=photosOf(x).map(path=>({path}));
   modal('<h2>'+(x?'Portföyü düzenle':'Yeni portföy')+'</h2>'+fld('Başlık *','f_t','text',x&&x.title)+
@@ -342,7 +353,7 @@ const act={
     if(!r.data.session)return E('Kayıt oluşturuldu. E-postanıza gelen onay bağlantısını (spam klasörünü de kontrol edin) açın; ardından giriş yapın.');
     boot(r.data.session)},
   sw(i){showAuth(i==='1')},
-  async out(){await sb.auth.signOut();location.reload()}
+  async out(){clearTimeout(portfolioCacheTimer);try{localStorage.removeItem(portfolioCacheKey())}catch(e){}await sb.auth.signOut();location.reload()}
 };
 document.addEventListener('click',e=>{
   if(e.target.id==='m')return closeM();
